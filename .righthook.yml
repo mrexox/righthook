@@ -1,0 +1,6 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - run: cargo clippy
+    - run: cargo fmt
+    # - run: exit 1
