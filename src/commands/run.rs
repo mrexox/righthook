@@ -1,5 +1,4 @@
-use crate::config::Config;
-use crate::config::Job;
+use crate::config::{Config, Job};
 use crate::repo;
 use anyhow::Result;
 use colored::Colorize;

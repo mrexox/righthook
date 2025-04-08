@@ -10,8 +10,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(name = "righthook")]
-#[command(version = "0.1.0")]
-#[command(about = "Lefthook alternative written in Rust", long_about = None)]
+#[command(version = VERSION)]
+#[command(about = "An alternative of lefthook written in Rust", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
