@@ -1,0 +1,5 @@
+# righthook config
+#
+# pre-commit:
+#   jobs:
+#     - run: echo "Hello, world!"

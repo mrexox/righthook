@@ -3,10 +3,24 @@ use crate::repo::Repo;
 use crate::templates::render_hook;
 use anyhow::Result;
 use std::fs::{set_permissions, write};
+use std::io;
 
 pub fn install(force: bool) -> Result<()> {
     let repo = Repo::new(".")?;
-    let config = Config::parse(&repo)?;
+    let config = match Config::parse(&repo) {
+        Ok(config) => config,
+        Err(err) => {
+            if let Some(io_err) = err.downcast_ref::<io::Error>() {
+                if io_err.kind() == io::ErrorKind::NotFound {
+                    Config::create(&repo)?
+                } else {
+                    return Err(err);
+                }
+            } else {
+                return Err(err);
+            }
+        }
+    };
 
     let mut installed_hooks: Vec<String> = Vec::new();
     for hook_name in config.hooks.keys() {
