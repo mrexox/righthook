@@ -8,6 +8,7 @@ mod git;
 mod runner;
 mod templates;
 
+pub use anyhow::Result;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {

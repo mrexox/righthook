@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::git::Git;
 use crate::templates::render_hook;
-use anyhow::Result;
+use crate::Result;
 use std::fs::{set_permissions, write};
 use std::io;
 

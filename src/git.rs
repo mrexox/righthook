@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use git2::Repository;
 use std::path::PathBuf;
 

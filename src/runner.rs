@@ -10,7 +10,7 @@ mod output;
 
 use crate::config::Hook;
 use crate::config::Job;
-use anyhow::Result;
+use crate::Result;
 use colored::Colorize;
 
 pub fn run_hook(hook: &Hook) -> Result<()> {

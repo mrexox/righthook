@@ -6,7 +6,7 @@ pub use job::Job;
 
 use crate::git::Git;
 use crate::templates::render_config;
-use anyhow::Result;
+use crate::Result;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;

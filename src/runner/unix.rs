@@ -1,5 +1,5 @@
 use super::output::Output;
-use anyhow::Result;
+use crate::Result;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
