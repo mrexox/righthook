@@ -1,12 +1,12 @@
 mod hook;
 mod job;
 
+pub use hook::Hook;
 pub use job::Job;
 
 use crate::repo::Repo;
 use crate::templates::render_config;
 use anyhow::Result;
-use hook::Hook;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;

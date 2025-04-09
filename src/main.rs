@@ -1,11 +1,12 @@
+#[macro_use]
+mod log;
+
 mod cli;
 mod commands;
 mod config;
 mod repo;
+mod runner;
 mod templates;
-
-use colored::Colorize;
-use std::process::exit;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -15,23 +16,17 @@ fn main() {
     match cli.command {
         Some(cli::Commands::Run { hook }) => {
             commands::run::run(hook).unwrap_or_else(|err| {
-                eprintln!("{}", err.to_string().red());
-
-                exit(1);
+                error!("{}", err.to_string());
             });
         }
         Some(cli::Commands::Install { force }) => {
             commands::install::install(force).unwrap_or_else(|err| {
-                eprintln!("{}", err.to_string().red());
-
-                exit(1);
+                error!("{}", err.to_string());
             });
         }
         Some(cli::Commands::Uninstall) => {
             commands::uninstall::uninstall().unwrap_or_else(|err| {
-                eprintln!("{}", err.to_string().red());
-
-                exit(1);
+                error!("{}", err.to_string());
             });
         }
         None => {

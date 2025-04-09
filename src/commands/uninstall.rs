@@ -1,6 +1,6 @@
 use crate::repo::Repo;
 use anyhow::Result;
-use std::fs::{read_dir, remove_file, File};
+use std::fs::{File, read_dir, remove_file};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
@@ -9,7 +9,7 @@ pub fn uninstall() -> Result<()> {
 
     read_dir(&repo.hooks)?
         .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().map_or(false, |ft| ft.is_file()))
+        .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_file()))
         .map(|entry| entry.path())
         .filter(|path| !path.ends_with(".sample"))
         .filter(|path| is_righthook_file(path).unwrap_or(false))
@@ -25,9 +25,9 @@ pub fn uninstall() -> Result<()> {
 }
 
 fn is_righthook_file(path: &Path) -> Result<bool> {
-    let file = File::open(&path)?;
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
-    for (_, line) in reader.lines().enumerate() {
+    for line in reader.lines() {
         let line = line?;
         if line.contains("call_righthook") {
             return Ok(true);
