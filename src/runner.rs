@@ -8,9 +8,9 @@ mod system;
 
 mod output;
 
+use crate::Result;
 use crate::config::Hook;
 use crate::config::Job;
-use crate::Result;
 use colored::Colorize;
 
 pub fn run_hook(hook: &Hook) -> Result<()> {

@@ -1,6 +1,6 @@
-use crate::git::Git;
 use crate::Result;
-use std::fs::{read_dir, remove_file, File};
+use crate::git::Git;
+use std::fs::{File, read_dir, remove_file};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 

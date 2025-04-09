@@ -1,9 +1,10 @@
+use crate::Result;
 use crate::config::Config;
 use crate::git::Git;
-use crate::templates::render_hook;
-use crate::Result;
 use std::fs::{set_permissions, write};
 use std::io;
+
+const HOOK_TEMPLATE: &str = include_str!("../templates/hook.sh");
 
 pub fn install(force: bool) -> Result<()> {
     let git = Git::new(".")?;
@@ -46,4 +47,8 @@ pub fn install(force: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn render_hook(hook_name: &str) -> String {
+    HOOK_TEMPLATE.replace("{{hook_name}}", hook_name)
 }

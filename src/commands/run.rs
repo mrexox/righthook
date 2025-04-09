@@ -1,7 +1,7 @@
+use crate::Result;
 use crate::config::Config;
 use crate::git::Git;
 use crate::runner::run_hook;
-use crate::Result;
 
 pub fn run(hook_name: String) -> Result<()> {
     let git = Git::new(".")?;

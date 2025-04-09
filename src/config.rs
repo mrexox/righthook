@@ -4,14 +4,14 @@ mod job;
 pub use hook::Hook;
 pub use job::Job;
 
-use crate::git::Git;
-use crate::templates::render_config;
 use crate::Result;
+use crate::git::Git;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 
 const CONFIG_NAME: &str = ".righthook.yml";
+const CONFIG_TEMPLATE: &str = include_str!("./templates/config.yml");
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -34,4 +34,8 @@ impl Config {
 
         Self::parse(git)
     }
+}
+
+fn render_config() -> String {
+    CONFIG_TEMPLATE.to_string()
 }
