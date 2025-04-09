@@ -1,18 +1,18 @@
 use crate::config::Config;
-use crate::repo::Repo;
+use crate::git::Git;
 use crate::templates::render_hook;
 use anyhow::Result;
 use std::fs::{set_permissions, write};
 use std::io;
 
 pub fn install(force: bool) -> Result<()> {
-    let repo = Repo::new(".")?;
-    let config = match Config::parse(&repo) {
+    let git = Git::new(".")?;
+    let config = match Config::parse(&git) {
         Ok(config) => config,
         Err(err) => {
             if let Some(io_err) = err.downcast_ref::<io::Error>() {
                 if io_err.kind() == io::ErrorKind::NotFound {
-                    Config::create(&repo)?
+                    Config::create(&git)?
                 } else {
                     return Err(err);
                 }
@@ -24,7 +24,7 @@ pub fn install(force: bool) -> Result<()> {
 
     let mut installed_hooks: Vec<String> = Vec::new();
     for hook_name in config.hooks.keys() {
-        let hook_path = repo.hooks.join(hook_name);
+        let hook_path = git.hooks.join(hook_name);
         if std::path::Path::new(&hook_path).exists() && !force {
             println!(
                 "Hook {} already exists. Use --force to overwrite.",

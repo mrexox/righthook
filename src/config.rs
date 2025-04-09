@@ -4,7 +4,7 @@ mod job;
 pub use hook::Hook;
 pub use job::Job;
 
-use crate::repo::Repo;
+use crate::git::Git;
 use crate::templates::render_config;
 use anyhow::Result;
 use serde::Deserialize;
@@ -20,18 +20,18 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn parse(repo: &Repo) -> Result<Self> {
-        let config_path = repo.root.join(CONFIG_NAME);
+    pub fn parse(git: &Git) -> Result<Self> {
+        let config_path = git.root.join(CONFIG_NAME);
         let yaml = fs::read_to_string(&config_path)?;
         let config: Config = serde_yaml::from_str(&yaml)?;
 
         Ok(config)
     }
 
-    pub fn create(repo: &Repo) -> Result<Self> {
-        let config_path = repo.root.join(CONFIG_NAME);
+    pub fn create(git: &Git) -> Result<Self> {
+        let config_path = git.root.join(CONFIG_NAME);
         fs::write(&config_path, render_config())?;
 
-        Self::parse(repo)
+        Self::parse(git)
     }
 }

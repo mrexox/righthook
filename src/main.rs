@@ -4,7 +4,7 @@ mod log;
 mod cli;
 mod commands;
 mod config;
-mod repo;
+mod git;
 mod runner;
 mod templates;
 

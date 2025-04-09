@@ -1,13 +1,13 @@
-use crate::repo::Repo;
+use crate::git::Git;
 use anyhow::Result;
 use std::fs::{File, read_dir, remove_file};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 pub fn uninstall() -> Result<()> {
-    let repo = Repo::new(".")?;
+    let git = Git::new(".")?;
 
-    read_dir(&repo.hooks)?
+    read_dir(&git.hooks)?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_file()))
         .map(|entry| entry.path())

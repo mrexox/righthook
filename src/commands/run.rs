@@ -1,11 +1,11 @@
 use crate::config::Config;
-use crate::repo::Repo;
+use crate::git::Git;
 use crate::runner::run_hook;
 use anyhow::Result;
 
 pub fn run(hook_name: String) -> Result<()> {
-    let repo = Repo::new(".")?;
-    let config = Config::parse(&repo)?;
+    let git = Git::new(".")?;
+    let config = Config::parse(&git)?;
 
     println!("righthook {} | hook: {} ", crate::VERSION, hook_name);
 
