@@ -1,7 +1,7 @@
 use crate::Result;
 use crate::config::Config;
 use crate::git::Git;
-use crate::runner::run_hook;
+use crate::runner::Runner;
 
 pub fn run(hook_name: String) -> Result<()> {
     let git = Git::new(".")?;
@@ -10,7 +10,10 @@ pub fn run(hook_name: String) -> Result<()> {
     println!("righthook {} | hook: {} ", crate::VERSION, hook_name);
 
     match config.hooks.get(&hook_name) {
-        Some(hook) => run_hook(hook),
-        None => Err(anyhow::anyhow!(format!("Hook '{}' not found", hook_name))),
+        Some(hook) => {
+            let runner = Runner::new(hook, git);
+            runner.run()
+        }
+        None => Err(eyre::eyre!("Hook '{}' not found", hook_name)),
     }
 }

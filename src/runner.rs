@@ -1,66 +1,103 @@
 #[cfg(target_family = "windows")]
-#[path = "runner/windows.rs"]
-mod system;
+#[path = "runner/os/windows.rs"]
+mod os;
 
 #[cfg(target_family = "unix")]
-#[path = "runner/unix.rs"]
-mod system;
+#[path = "runner/os/unix.rs"]
+mod os;
 
 mod output;
 
 use crate::Result;
 use crate::config::Hook;
 use crate::config::Job;
+use crate::git::Git;
 use colored::Colorize;
 
-pub fn run_hook(hook: &Hook) -> Result<()> {
-    if hook.parallel {
-        run_jobs_parallel(&hook.jobs)
-    } else {
-        run_jobs(&hook.jobs)
+pub struct Runner<'a> {
+    hook: &'a Hook,
+    git: Git,
+}
+
+impl<'a> Runner<'a> {
+    pub fn new(hook: &'a Hook, git: Git) -> Runner<'a> {
+        Runner { hook, git }
     }
-}
 
-fn run_jobs_parallel(jobs: &[Job]) -> Result<()> {
-    // TODO: add parallelization
-    run_jobs(jobs)
-}
-
-fn run_jobs(jobs: &[Job]) -> Result<()> {
-    let mut failed: Vec<String> = Vec::with_capacity(jobs.len());
-    for job in jobs {
-        if !run_job(job)? {
-            failed.push(job.run.clone());
+    pub fn run(&self) -> Result<()> {
+        if self.hook.parallel {
+            self.run_jobs_parallel()
+        } else {
+            self.run_jobs()
         }
     }
 
-    if !failed.is_empty() {
-        return Err(anyhow::anyhow!(format!(
-            "jobs failed: {}",
-            failed.join(", ")
-        )));
+    fn run_jobs_parallel(&self) -> Result<()> {
+        self.run_jobs() // TODO: add parallelization
     }
 
-    Ok(())
+    fn run_jobs(&self) -> Result<()> {
+        let failed: Vec<String> = self
+            .hook
+            .jobs
+            .iter()
+            .filter_map(|job| {
+                match run_job(&self.git, &job) {
+                    Ok((true, output)) => {
+                        println!("{} {}\n{}", "❯", job.run.green(), output.stdout);
+                        // Debug logs
+                        // println!("{}", output.stderr);
+                        None
+                    }
+                    Ok((false, output)) => {
+                        println!(
+                            "{} {}\n{}{}",
+                            "❯",
+                            job.run.red(),
+                            output.stdout,
+                            output.stderr.red(),
+                        );
+                        Some(job.run.clone())
+                    }
+                    Err(err) => {
+                        println!("{} {}\n{}", "❯".red(), job.run.red(), err.to_string().red());
+                        Some(job.run.clone())
+                    }
+                }
+            })
+            .collect();
+
+        if !failed.is_empty() {
+            return Err(eyre::eyre!("jobs failed: {}", failed.join(", ")));
+        }
+
+        Ok(())
+    }
 }
 
-fn run_job(job: &Job) -> Result<bool> {
-    let output = system::run(&job.run, "")?;
-
-    if output.ok {
-        println!("{} {}\n{}", "❯", job.run.green(), output.stdout);
-        // Debug logs
-        // println!("{}", output.stderr);
-        return Ok(true);
+fn run_job(git: &Git, job: &Job) -> Result<(bool, output::Output)> {
+    let mut cmd = job.run.clone();
+    if cmd.contains("{staged_files}") {
+        cmd = cmd.replace(
+            "{staged_files}",
+            &git.staged_files()?
+                .iter()
+                .map(|path| path.to_string_lossy())
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
     }
 
-    println!(
-        "{} {}\n{}{}",
-        "❯".red(),
-        job.run.red(),
-        output.stdout,
-        output.stderr.red(),
-    );
+    if cmd.contains("{push_files}") {
+        cmd = cmd.replace(
+            "{push_files}",
+            &git.push_files()?
+                .iter()
+                .map(|path| path.to_string_lossy())
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+    }
 
-    Ok(false)
+    os::execute(&cmd, "")
 }

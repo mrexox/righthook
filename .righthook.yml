@@ -4,3 +4,5 @@ pre-commit:
     - run: cargo clippy
     - run: cargo fmt
     - run: echo 'Hello'; echo 'STDERR' >&2; exit 1
+    - run: echo {staged_files}
+    - run: echo {push_files}

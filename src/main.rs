@@ -7,7 +7,7 @@ mod config;
 mod git;
 mod runner;
 
-pub use anyhow::Result;
+pub use eyre::Result;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
@@ -16,17 +16,17 @@ fn main() {
     match cli.command {
         Some(cli::Commands::Run { hook }) => {
             commands::run::run(hook).unwrap_or_else(|err| {
-                error!("{}", err.to_string());
+                fail!("{}", err.to_string());
             });
         }
         Some(cli::Commands::Install { force }) => {
             commands::install::install(force).unwrap_or_else(|err| {
-                error!("{}", err.to_string());
+                fail!("{}", err.to_string());
             });
         }
         Some(cli::Commands::Uninstall) => {
             commands::uninstall::uninstall().unwrap_or_else(|err| {
-                error!("{}", err.to_string());
+                fail!("{}", err.to_string());
             });
         }
         None => {

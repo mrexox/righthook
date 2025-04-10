@@ -4,7 +4,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
 
-pub fn run(cmd: &str, stdin_data: &str) -> Result<Output> {
+pub fn execute(cmd: &str, stdin_data: &str) -> Result<(bool, Output)> {
     let stdin = if stdin_data.is_empty() {
         Stdio::null()
     } else {
@@ -26,9 +26,11 @@ pub fn run(cmd: &str, stdin_data: &str) -> Result<Output> {
 
     let output = child.wait_with_output()?;
 
-    Ok(Output {
-        ok: output.status.success(),
-        stdout: from_utf8(&output.stdout)?.to_string(),
-        stderr: from_utf8(&output.stderr)?.to_string(),
-    })
+    Ok((
+        output.status.success(),
+        Output {
+            stdout: from_utf8(&output.stdout)?.to_string(),
+            stderr: from_utf8(&output.stderr)?.to_string(),
+        },
+    ))
 }

@@ -26,7 +26,7 @@ pub fn install(force: bool) -> Result<()> {
     let mut installed_hooks: Vec<String> = Vec::new();
     for hook_name in config.hooks.keys() {
         let hook_path = git.hooks.join(hook_name);
-        if std::path::Path::new(&hook_path).exists() && !force {
+        if hook_path.exists() && !force {
             println!(
                 "Hook {} already exists. Use --force to overwrite.",
                 hook_name
