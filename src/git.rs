@@ -1,15 +1,15 @@
 use crate::Result;
 use eyre::WrapErr;
 use git2::{ObjectType, Repository, StatusOptions, StatusShow};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 pub struct Git {
     pub root: PathBuf,
     pub hooks: PathBuf,
     repo: Repository,
-    files_cache: RefCell<HashMap<Templates, Vec<PathBuf>>>,
+    files_cache: Mutex<HashMap<Templates, Vec<PathBuf>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,7 +31,7 @@ impl Git {
             hooks = repo.path().join("hooks");
         }
 
-        let files_cache = RefCell::new(HashMap::new());
+        let files_cache = Mutex::new(HashMap::new());
 
         Ok(Git {
             repo,
@@ -42,7 +42,8 @@ impl Git {
     }
 
     pub fn staged_files(&self) -> Result<Vec<PathBuf>> {
-        if let Some(files) = self.files_cache.borrow().get(&Templates::StagedFiles) {
+        let mut cache = self.files_cache.lock().unwrap();
+        if let Some(files) = cache.get(&Templates::StagedFiles) {
             return Ok(files.clone());
         }
 
@@ -60,21 +61,24 @@ impl Git {
             .filter(|p| p.exists())
             .collect();
 
-        self.files_cache
-            .borrow_mut()
-            .insert(Templates::StagedFiles, paths.clone());
+        cache.insert(Templates::StagedFiles, paths.clone());
 
         Ok(paths)
     }
 
     pub fn push_files(&self) -> Result<Vec<PathBuf>> {
-        if let Some(files) = self.files_cache.borrow().get(&Templates::PushFiles) {
+        let mut cache = self.files_cache.lock().unwrap();
+        if let Some(files) = cache.get(&Templates::PushFiles) {
             return Ok(files.clone());
         }
 
         // Get the HEAD commit
+        // TODO: Use empty tree commit as a fallback
         let head_ref = self.repo.head()?;
-        let head_commit = head_ref.peel(ObjectType::Commit)?.into_commit().unwrap();
+        let head_commit = head_ref
+            .peel(ObjectType::Commit)?
+            .into_commit()
+            .expect("HEAD was not found");
 
         // Get the commit referenced by @{push}
         let push_ref = self.repo.find_reference("refs/remotes/origin/HEAD")?;
@@ -106,6 +110,9 @@ impl Git {
             None,
             None,
         )?;
+
+        cache.insert(Templates::PushFiles, paths.clone());
+
         Ok(paths)
     }
 }
