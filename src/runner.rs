@@ -44,13 +44,13 @@ impl<'a> Runner<'a> {
             .filter_map(|job| {
                 match run_job(&self.git, &job) {
                     Ok((true, output)) => {
-                        println!("{} {}\n{}", "❯", job.run.green(), output.stdout);
+                        info!("{} {}\n{}", "❯", job.run.green(), output.stdout);
                         // Debug logs
                         // println!("{}", output.stderr);
                         None
                     }
                     Ok((false, output)) => {
-                        println!(
+                        info!(
                             "{} {}\n{}{}",
                             "❯",
                             job.run.red(),
@@ -60,7 +60,7 @@ impl<'a> Runner<'a> {
                         Some(job.run.clone())
                     }
                     Err(err) => {
-                        println!("{} {}\n{}", "❯".red(), job.run.red(), err.to_string().red());
+                        error!("{} {}\n{}", "❯", job.run, err.to_string());
                         Some(job.run.clone())
                     }
                 }
@@ -98,6 +98,8 @@ fn run_job(git: &Git, job: &Job) -> Result<(bool, output::Output)> {
                 .join(" "),
         );
     }
+
+    trace!("run {}", &cmd);
 
     os::execute(&cmd, "")
 }

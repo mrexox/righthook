@@ -14,3 +14,4 @@ To do
 - [ ] Add auto stage feature (including hiding unstaged changes)
 - [ ] Add nested jobs
 - [ ] Handle long lists of files with separate execution
+- [ ] Setup the release CI

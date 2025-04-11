@@ -508,6 +508,7 @@ dependencies = [
  "colored",
  "eyre",
  "git2",
+ "log",
  "serde",
  "serde_yaml",
 ]
