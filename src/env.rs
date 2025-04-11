@@ -7,6 +7,9 @@ pub static RIGHTHOOK_VERBOSE: LazyLock<bool> = LazyLock::new(|| {
         .unwrap_or(false)
 });
 
+pub static RIGHTHOOK_TRACE: LazyLock<bool> =
+    LazyLock::new(|| var_bool("RIGHTHOOK_TRACE").unwrap_or(false));
+
 fn var_bool(key: &str) -> Option<bool> {
     var(key)
         .ok()

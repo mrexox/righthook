@@ -3,19 +3,52 @@ use eyre::WrapErr;
 use git2::{ObjectType, Repository, StatusOptions, StatusShow};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
+
+static GIT_HOOKS: LazyLock<HashMap<&str, ()>> = LazyLock::new(|| {
+    HashMap::from([
+        ("applypatch-msg", ()),
+        ("pre-applypatch", ()),
+        ("post-applypatch", ()),
+        ("pre-commit", ()),
+        ("pre-merge-commit", ()),
+        ("prepare-commit-msg", ()),
+        ("commit-msg", ()),
+        ("post-commit", ()),
+        ("pre-rebase", ()),
+        ("post-checkout", ()),
+        ("post-merge", ()),
+        ("pre-push", ()),
+        ("pre-receive", ()),
+        ("update", ()),
+        ("proc-receive", ()),
+        ("post-receive", ()),
+        ("post-update", ()),
+        ("reference-transaction", ()),
+        ("push-to-checkout", ()),
+        ("pre-auto-gc", ()),
+        ("post-rewrite", ()),
+        ("sendemail-validate", ()),
+        ("fsmonitor-watchman", ()),
+        ("p4-changelist", ()),
+        ("p4-prepare-changelist", ()),
+        ("p4-post-changelist", ()),
+        ("p4-pre-submit", ()),
+        ("post-index-change", ()),
+    ])
+});
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Templates {
+    StagedFiles,
+    PushFiles,
+}
 
 pub struct Git {
     pub root: PathBuf,
     pub hooks: PathBuf,
     repo: Repository,
     files_cache: Mutex<HashMap<Templates, Vec<PathBuf>>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Templates {
-    StagedFiles,
-    PushFiles,
 }
 
 impl Git {
@@ -39,6 +72,10 @@ impl Git {
             hooks,
             files_cache,
         })
+    }
+
+    pub fn is_git_hook(&self, hook_name: &str) -> bool {
+        (*GIT_HOOKS).contains_key(hook_name)
     }
 
     pub fn staged_files(&self) -> Result<Vec<PathBuf>> {

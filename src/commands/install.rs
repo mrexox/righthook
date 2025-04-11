@@ -25,6 +25,10 @@ pub fn install(force: bool) -> Result<()> {
 
     let mut installed_hooks: Vec<String> = Vec::new();
     for hook_name in config.hooks.keys() {
+        if !git.is_git_hook(hook_name) {
+            debug!("skip: {} - not a git hook", hook_name);
+            continue;
+        }
         let hook_path = git.hooks.join(hook_name);
         if hook_path.exists() && !force {
             println!(

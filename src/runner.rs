@@ -25,7 +25,7 @@ impl<'a> Runner<'a> {
     }
 
     pub fn run(&self) -> Result<()> {
-        if self.hook.parallel {
+        if let Some(true) = self.hook.parallel {
             self.run_jobs_parallel()
         } else {
             self.run_jobs()

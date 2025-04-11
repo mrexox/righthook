@@ -1,4 +1,5 @@
 use crate::env;
+use colored::Colorize;
 use log::{Level, LevelFilter};
 use std::sync::OnceLock;
 
@@ -18,20 +19,20 @@ impl log::Log for Logger {
             return;
         }
 
-        let logstr = match record.level() {
-            Level::Trace => format!("|  {}", record.args()),
-            Level::Debug => format!("|  {}", record.args()),
-            _ => format!("{}", record.args()),
+        match record.level() {
+            Level::Trace => println!("{}", format!("|  {}", record.args()).bright_black()),
+            Level::Debug => println!("{}", format!("|  {}", record.args()).bright_black()),
+            _ => println!("{}", record.args()),
         };
-
-        println!("{}", logstr);
     }
 
     fn flush(&self) {}
 }
 
 pub fn init() {
-    let level = if *env::RIGHTHOOK_VERBOSE {
+    let level = if *env::RIGHTHOOK_TRACE {
+        LevelFilter::Trace
+    } else if *env::RIGHTHOOK_VERBOSE {
         LevelFilter::Debug
     } else {
         LevelFilter::Info
