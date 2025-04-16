@@ -23,9 +23,9 @@ pub struct Runner {
 }
 
 struct JobStatus {
+    job: Job,
     ok: bool,
     output: output::Output,
-    cmd: String,
 }
 
 impl Runner {
@@ -47,58 +47,42 @@ impl Runner {
     async fn run_jobs(&self, parallel: bool) -> Result<()> {
         let mut set = JoinSet::new();
 
-        let job_results: Vec<_> = if parallel {
+        let mut failed = Vec::with_capacity(self.hook.jobs.len());
+        if parallel {
             for job in self.hook.jobs.clone().into_iter() {
                 let git = Arc::clone(&self.git);
                 set.spawn(async move { run_job(git, job).await });
             }
-            set.join_all().await
+            while let Some(result) = set.join_next().await {
+                match result.unwrap() {
+                    Ok(job_status) => {
+                        if let Some(name) = handle_result(&job_status) {
+                            failed.push(name);
+                        }
+                    }
+                    Err(err) => {
+                        error!("Error running job: {}", err);
+                    }
+                }
+            }
         } else {
-            let mut results = Vec::with_capacity(self.hook.jobs.len());
             for job in self.hook.jobs.clone().into_iter() {
                 let git = Arc::clone(&self.git);
-                results.push(run_job(git, job).await);
-            }
-            results
-        };
-
-        let failed: Vec<_> = job_results
-            .iter()
-            .filter_map(|result| {
-                match result {
-                    Ok(JobStatus {
-                        ok: true,
-                        cmd,
-                        output,
-                    }) => {
-                        info!("{} {}\n{}", "❯", cmd.green(), output.stdout);
-                        // Debug logs
-                        // println!("{}", output.stderr);
-                        None
+                match run_job(git, job).await {
+                    Ok(job_status) => {
+                        if let Some(name) = handle_result(&job_status) {
+                            failed.push(name);
+                        }
                     }
-                    Ok(JobStatus {
-                        ok: false,
-                        cmd,
-                        output,
-                    }) => {
-                        info!(
-                            "{} {}\n{}{}",
-                            "❯",
-                            cmd.red(),
-                            output.stdout,
-                            output.stderr.red(),
-                        );
-                        Some(cmd.clone())
-                    }
-                    Err(_err) => {
+                    Err(err) => {
                         // TODO: fix
                         // error!("{} {}\n{}", "❯", job.run, err);
                         // Some(job.run.clone())
-                        None
+                        error!("Error running job: {}", err);
                     }
                 }
-            })
-            .collect();
+            }
+        };
 
         if !failed.is_empty() {
             return Err(eyre::eyre!("jobs failed: {}", failed.join(", ")));
@@ -136,13 +120,32 @@ async fn run_job(git: Arc<Mutex<Git>>, job: Job) -> Result<JobStatus> {
         cmd = cmd.replace("{push_files}", &push_files);
     }
 
-    trace!("run {}", &cmd);
+    trace!("running {}", &cmd);
 
     let (ok, output) = os::execute(&cmd, "").await?;
 
-    Ok(JobStatus {
-        ok,
-        output,
-        cmd: job.run.clone(),
-    })
+    Ok(JobStatus { ok, output, job })
+}
+
+fn handle_result(job_status: &JobStatus) -> Option<String> {
+    if job_status.ok {
+        info!(
+            "{} {}\n{}",
+            "❯",
+            job_status.job.name().green(),
+            job_status.output.stdout
+        );
+        // Debug logs
+        // println!("{}", output.stderr);
+        return None;
+    }
+
+    info!(
+        "{} {}\n{}{}",
+        "❯",
+        job_status.job.name().red(),
+        job_status.output.stdout,
+        job_status.output.stderr.red(),
+    );
+    Some(job_status.job.name())
 }

@@ -40,7 +40,7 @@ static GIT_HOOKS: LazyLock<HashMap<&str, ()>> = LazyLock::new(|| {
 });
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Templates {
+enum FilesTemplate {
     StagedFiles,
     PushFiles,
 }
@@ -49,7 +49,7 @@ pub struct Git {
     pub root: PathBuf,
     pub hooks: PathBuf,
     repo: Repository,
-    files_cache: Mutex<HashMap<Templates, Vec<PathBuf>>>,
+    files_cache: Mutex<HashMap<FilesTemplate, Vec<PathBuf>>>,
 }
 
 impl Git {
@@ -81,7 +81,7 @@ impl Git {
 
     pub fn staged_files(&self) -> Result<Vec<PathBuf>> {
         let mut cache = self.files_cache.lock().unwrap();
-        if let Some(files) = cache.get(&Templates::StagedFiles) {
+        if let Some(files) = cache.get(&FilesTemplate::StagedFiles) {
             return Ok(files.clone());
         }
 
@@ -99,14 +99,14 @@ impl Git {
             .filter(|p| p.exists())
             .collect();
 
-        cache.insert(Templates::StagedFiles, paths.clone());
+        cache.insert(FilesTemplate::StagedFiles, paths.clone());
 
         Ok(paths)
     }
 
     pub fn push_files(&self) -> Result<Vec<PathBuf>> {
         let mut cache = self.files_cache.lock().unwrap();
-        if let Some(files) = cache.get(&Templates::PushFiles) {
+        if let Some(files) = cache.get(&FilesTemplate::PushFiles) {
             return Ok(files.clone());
         }
 
@@ -149,7 +149,7 @@ impl Git {
             None,
         )?;
 
-        cache.insert(Templates::PushFiles, paths.clone());
+        cache.insert(FilesTemplate::PushFiles, paths.clone());
 
         Ok(paths)
     }
