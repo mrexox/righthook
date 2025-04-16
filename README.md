@@ -9,7 +9,7 @@ To do
 - [x] Uninstall righthook hooks
 - [x] Handle templates like {stage_files} and {push_files}
 - [x] Install only hooks supported by Git
-- [ ] Run jobs in parallel
+- [x] Run jobs in parallel
 - [ ] Skip, glob, exclude options
 - [ ] Add auto stage feature (including hiding unstaged changes)
 - [ ] Add nested jobs

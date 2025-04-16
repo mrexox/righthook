@@ -3,7 +3,8 @@ use eyre::WrapErr;
 use git2::{ObjectType, Repository, StatusOptions, StatusShow};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
+use std::sync::Mutex;
 
 static GIT_HOOKS: LazyLock<HashMap<&str, ()>> = LazyLock::new(|| {
     HashMap::from([

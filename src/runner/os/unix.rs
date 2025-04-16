@@ -1,10 +1,11 @@
 use super::output::Output;
 use crate::Result;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::str::from_utf8;
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 
-pub fn execute(cmd: &str, stdin_data: &str) -> Result<(bool, Output)> {
+pub async fn execute(cmd: &str, stdin_data: &str) -> Result<(bool, Output)> {
     let stdin = if stdin_data.is_empty() {
         Stdio::null()
     } else {
@@ -21,10 +22,10 @@ pub fn execute(cmd: &str, stdin_data: &str) -> Result<(bool, Output)> {
 
     if let Some(mut stdin) = child.stdin.take() {
         // Write the input string to the child's stdin
-        stdin.write_all(stdin_data.as_bytes())?;
+        stdin.write_all(stdin_data.as_bytes()).await?;
     }
 
-    let output = child.wait_with_output()?;
+    let output = child.wait_with_output().await?;
 
     Ok((
         output.status.success(),

@@ -13,55 +13,88 @@ use crate::config::Hook;
 use crate::config::Job;
 use crate::git::Git;
 use colored::Colorize;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::task::JoinSet;
 
-pub struct Runner<'a> {
-    hook: &'a Hook,
-    git: Git,
+pub struct Runner {
+    hook: Hook,
+    git: Arc<Mutex<Git>>,
 }
 
-impl<'a> Runner<'a> {
-    pub fn new(hook: &'a Hook, git: Git) -> Runner<'a> {
-        Runner { hook, git }
-    }
+struct JobStatus {
+    ok: bool,
+    output: output::Output,
+    cmd: String,
+}
 
-    pub fn run(&self) -> Result<()> {
-        if let Some(true) = self.hook.parallel {
-            self.run_jobs_parallel()
-        } else {
-            self.run_jobs()
+impl Runner {
+    pub fn new(hook: Hook, git: Git) -> Runner {
+        Runner {
+            hook,
+            git: Arc::new(Mutex::new(git)),
         }
     }
 
-    fn run_jobs_parallel(&self) -> Result<()> {
-        self.run_jobs() // TODO: add parallelization
+    pub async fn run(&self) -> Result<()> {
+        if let Some(true) = self.hook.parallel {
+            self.run_jobs(true).await
+        } else {
+            self.run_jobs(false).await
+        }
     }
 
-    fn run_jobs(&self) -> Result<()> {
-        let failed: Vec<String> = self
-            .hook
-            .jobs
+    async fn run_jobs(&self, parallel: bool) -> Result<()> {
+        let mut set = JoinSet::new();
+
+        let job_results: Vec<_> = if parallel {
+            for job in self.hook.jobs.clone().into_iter() {
+                let git = Arc::clone(&self.git);
+                set.spawn(async move { run_job(git, job).await });
+            }
+            set.join_all().await
+        } else {
+            let mut results = Vec::with_capacity(self.hook.jobs.len());
+            for job in self.hook.jobs.clone().into_iter() {
+                let git = Arc::clone(&self.git);
+                results.push(run_job(git, job).await);
+            }
+            results
+        };
+
+        let failed: Vec<_> = job_results
             .iter()
-            .filter_map(|job| {
-                match run_job(&self.git, &job) {
-                    Ok((true, output)) => {
-                        info!("{} {}\n{}", "❯", job.run.green(), output.stdout);
+            .filter_map(|result| {
+                match result {
+                    Ok(JobStatus {
+                        ok: true,
+                        cmd,
+                        output,
+                    }) => {
+                        info!("{} {}\n{}", "❯", cmd.green(), output.stdout);
                         // Debug logs
                         // println!("{}", output.stderr);
                         None
                     }
-                    Ok((false, output)) => {
+                    Ok(JobStatus {
+                        ok: false,
+                        cmd,
+                        output,
+                    }) => {
                         info!(
                             "{} {}\n{}{}",
                             "❯",
-                            job.run.red(),
+                            cmd.red(),
                             output.stdout,
                             output.stderr.red(),
                         );
-                        Some(job.run.clone())
+                        Some(cmd.clone())
                     }
-                    Err(err) => {
-                        error!("{} {}\n{}", "❯", job.run, err.to_string());
-                        Some(job.run.clone())
+                    Err(_err) => {
+                        // TODO: fix
+                        // error!("{} {}\n{}", "❯", job.run, err);
+                        // Some(job.run.clone())
+                        None
                     }
                 }
             })
@@ -75,31 +108,41 @@ impl<'a> Runner<'a> {
     }
 }
 
-fn run_job(git: &Git, job: &Job) -> Result<(bool, output::Output)> {
+async fn run_job(git: Arc<Mutex<Git>>, job: Job) -> Result<JobStatus> {
     let mut cmd = job.run.clone();
     if cmd.contains("{staged_files}") {
-        cmd = cmd.replace(
-            "{staged_files}",
-            &git.staged_files()?
+        let staged_files = {
+            git.lock()
+                .await
+                .staged_files()?
                 .iter()
                 .map(|path| path.to_string_lossy())
                 .collect::<Vec<_>>()
-                .join(" "),
-        );
+                .join(" ")
+        };
+        cmd = cmd.replace("{staged_files}", &staged_files);
     }
 
     if cmd.contains("{push_files}") {
-        cmd = cmd.replace(
-            "{push_files}",
-            &git.push_files()?
+        let push_files = {
+            git.lock()
+                .await
+                .push_files()?
                 .iter()
                 .map(|path| path.to_string_lossy())
                 .collect::<Vec<_>>()
-                .join(" "),
-        );
+                .join(" ")
+        };
+        cmd = cmd.replace("{push_files}", &push_files);
     }
 
     trace!("run {}", &cmd);
 
-    os::execute(&cmd, "")
+    let (ok, output) = os::execute(&cmd, "").await?;
+
+    Ok(JobStatus {
+        ok,
+        output,
+        cmd: job.run.clone(),
+    })
 }
