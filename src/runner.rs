@@ -8,10 +8,11 @@ mod os;
 
 mod output;
 
-use crate::Result;
 use crate::config::Hook;
 use crate::config::Job;
 use crate::git::Git;
+use crate::Result;
+
 use colored::Colorize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -135,8 +136,7 @@ fn handle_result(job_status: &JobStatus) -> Option<String> {
             job_status.job.name().green(),
             job_status.output.stdout
         );
-        // Debug logs
-        // println!("{}", output.stderr);
+        debug!("{}", job_status.output.stderr);
         return None;
     }
 
